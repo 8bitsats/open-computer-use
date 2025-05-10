@@ -17,6 +17,8 @@ openai = "^1.59.5"
 anthropic = "^0.44.0"
 pyqtwebengine = "^5.15.7"
 pywebview = {extras = ["qt"], version = "^5.4"}
+selenium = "^4.32.0"
+helium = "^5.1.1"
 
 [tool.poetry.scripts]
 start = "main:main"

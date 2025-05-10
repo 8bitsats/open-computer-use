@@ -2,6 +2,10 @@ from os_computer_use.config import vision_model, action_model, grounding_model
 from os_computer_use.llm_provider import Message
 from os_computer_use.logging import logger
 from os_computer_use.grounding import draw_big_dot
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+import helium
+from time import sleep
 
 import shlex
 import os
@@ -112,7 +116,9 @@ class SandboxAgent:
         params={"text": "Text to type"},
     )
     def type_text(self, text):
-        self.sandbox.write(text, chunk_size=TYPING_GROUP_SIZE, delay_in_ms=TYPING_DELAY_MS)
+        self.sandbox.write(
+            text, chunk_size=TYPING_GROUP_SIZE, delay_in_ms=TYPING_DELAY_MS
+        )
         return "The text has been typed."
 
     def click_element(self, query, click_command, action_name="click"):
@@ -213,3 +219,63 @@ class SandboxAgent:
                 self.messages.append(
                     Message(logger.log(f"OBSERVATION: {result}", "yellow"))
                 )
+
+    @tool(
+        description="Search Google and return the top 5 result titles and URLs.",
+        params={"query": "Google search query string"},
+    )
+    def google_search(self, query):
+        driver = helium.get_driver()
+        driver.get("https://www.google.com")
+        sleep(1)
+        search_box = driver.find_element(By.NAME, "q")
+        search_box.send_keys(query)
+        search_box.send_keys(Keys.RETURN)
+        sleep(2)
+        results = driver.find_elements(By.CSS_SELECTOR, "h3")
+        links = driver.find_elements(By.CSS_SELECTOR, "a")
+        output = []
+        for i, (title, link) in enumerate(zip(results, links)):
+            if title.text and link.get_attribute("href"):
+                output.append(f"{i+1}. {title.text} - {link.get_attribute('href')}")
+            if i >= 4:
+                break
+        return "\n".join(output) if output else "No results found."
+
+    @tool(
+        description="Visit pump.fun and return trending meme tokens (top 10).",
+        params={},
+    )
+    def get_trending_pump_fun(self):
+        driver = helium.get_driver()
+        driver.get("https://pump.fun")
+        sleep(3)
+        # TODO: Update selector to match actual trending tokens on pump.fun
+        trending = driver.find_elements(
+            By.CSS_SELECTOR, ".trending-token-selector"
+        )  # Placeholder selector
+        tokens = [t.text for t in trending if t.text][:10]
+        return (
+            "Trending on pump.fun:\n" + "\n".join(tokens)
+            if tokens
+            else "No trending tokens found."
+        )
+
+    @tool(
+        description="Visit dexscreener.com/solana and return trending meme tokens (top 10).",
+        params={},
+    )
+    def get_trending_dexscreener(self):
+        driver = helium.get_driver()
+        driver.get("https://dexscreener.com/solana")
+        sleep(3)
+        # TODO: Update selector to match actual trending tokens on dexscreener.com/solana
+        trending = driver.find_elements(
+            By.CSS_SELECTOR, ".trending-token-selector"
+        )  # Placeholder selector
+        tokens = [t.text for t in trending if t.text][:10]
+        return (
+            "Trending on dexscreener.com/solana:\n" + "\n".join(tokens)
+            if tokens
+            else "No trending tokens found."
+        )
